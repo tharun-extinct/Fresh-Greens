@@ -6,6 +6,7 @@
 #   FIREBASE_SERVICE_ACCOUNT_JSON  → full contents of firebase-service-account.json
 #   RAZORPAY_KEY_ID                → Razorpay test key ID   (rzp_test_…)
 #   RAZORPAY_KEY_SECRET            → Razorpay test key secret
+#   RAZORPAY_WEBHOOK_SECRET        → Razorpay webhook secret
 # ─────────────────────────────────────────────────────────────────────────────
 name: Spring Boot CI
 
@@ -62,8 +63,7 @@ jobs:
           cache: 'maven'
 
       # 3. Write Firebase service-account JSON from secret
-      #    If the secret is absent the file will be empty; context-load test
-      #    will fail — make sure FIREBASE_SERVICE_ACCOUNT_JSON is set.
+      #    FirebaseConfig skips init gracefully when the file is empty.
       - name: Write Firebase service-account JSON
         env:
           FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -78,19 +78,21 @@ jobs:
       - name: Run Maven tests
         working-directory: app
         env:
-          # ── Datasource (overrides application.properties) ──
-          SPRING_DATASOURCE_URL: >-
+          # ── Datasource — matches ${DB_*} placeholders in application.properties ──
+          DB_URL: >-
             jdbc:mysql://localhost:3306/fresh_greens_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: ci_root
+          DB_USERNAME: root
+          DB_PASSWORD: ci_root
 
           # ── Redis ──
           SPRING_DATA_REDIS_HOST: localhost
           SPRING_DATA_REDIS_PORT: 6379
 
-          # ── Razorpay ──
-          RAZORPAY_KEY_ID:     ${{ secrets.RAZORPAY_KEY_ID }}
-          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          # ── Razorpay — matches ${RAZORPAY_*} placeholders in application.properties ──
+          # Tests use stubs from application-test.properties; secrets used for integration runs
+          RAZORPAY_KEY_ID:         ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET:     ${{ secrets.RAZORPAY_KEY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
 
           # ── Suppress DDL noise in CI logs ──
           SPRING_JPA_SHOW_SQL: 'false'
