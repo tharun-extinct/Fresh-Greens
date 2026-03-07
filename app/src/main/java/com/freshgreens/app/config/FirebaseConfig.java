@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -27,16 +28,22 @@ public class FirebaseConfig {
             if (FirebaseApp.getApps().isEmpty()) {
                 InputStream serviceAccount = new ClassPathResource(firebaseConfigPath).getInputStream();
 
+                // Guard: skip init if the file is empty (CI environment without secret set)
+                byte[] json = serviceAccount.readAllBytes();
+                if (json.length == 0) {
+                    log.warn("Firebase service account JSON is empty — skipping Firebase init (CI/test mode)");
+                    return;
+                }
+
                 FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                        .setCredentials(GoogleCredentials.fromStream(new ByteArrayInputStream(json)))
                         .build();
 
                 FirebaseApp.initializeApp(options);
                 log.info("Firebase Admin SDK initialized successfully");
             }
-        } catch (IOException e) {
-            log.error("Failed to initialize Firebase Admin SDK. " +
-                      "Ensure '{}' exists in src/main/resources/", firebaseConfigPath, e);
+        } catch (IOException | IllegalArgumentException e) {
+            log.warn("Firebase Admin SDK not initialized — running without Firebase. Reason: {}", e.getMessage());
         }
     }
 }
