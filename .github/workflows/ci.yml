@@ -1,0 +1,102 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Fresh Greens — CI Workflow
+# Runs the Spring Boot test suite on every push / pull_request to main.
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   FIREBASE_SERVICE_ACCOUNT_JSON  → full contents of firebase-service-account.json
+#   RAZORPAY_KEY_ID                → Razorpay test key ID   (rzp_test_…)
+#   RAZORPAY_KEY_SECRET            → Razorpay test key secret
+# ─────────────────────────────────────────────────────────────────────────────
+name: Spring Boot CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Build & Test (JDK 17)
+    runs-on: ubuntu-latest
+
+    # ── Service Containers ────────────────────────────────────────────────────
+    services:
+
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root
+          MYSQL_DATABASE: fresh_greens_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    # ── Steps ─────────────────────────────────────────────────────────────────
+    steps:
+
+      # 1. Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. JDK 17 (Temurin) + Maven dependency cache
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # 3. Write Firebase service-account JSON from secret
+      #    If the secret is absent the file will be empty; context-load test
+      #    will fail — make sure FIREBASE_SERVICE_ACCOUNT_JSON is set.
+      - name: Write Firebase service-account JSON
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$FIREBASE_SA" > app/src/main/resources/firebase-service-account.json
+
+      # 4. Run tests
+      - name: Run Maven tests
+        working-directory: app
+        env:
+          # ── Datasource (overrides application.properties) ──
+          SPRING_DATASOURCE_URL: >-
+            jdbc:mysql://localhost:3306/fresh_greens_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: ci_root
+
+          # ── Redis ──
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+
+          # ── Razorpay ──
+          RAZORPAY_KEY_ID:     ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+
+          # ── Suppress DDL noise in CI logs ──
+          SPRING_JPA_SHOW_SQL: 'false'
+        run: ./mvnw test --batch-mode --no-transfer-progress
+
+      # 5. Publish Surefire test report (visible in PR / Actions tab)
+      - name: Publish test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: app/target/surefire-reports/
+          retention-days: 7

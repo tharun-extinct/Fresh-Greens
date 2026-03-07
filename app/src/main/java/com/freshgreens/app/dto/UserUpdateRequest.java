@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class UserUpdateRequest {
 
-    @Size(max = 100)
+    @Size(max = 25, message = "Display name must be under 25 characters")
     private String displayName;
 
     @Email(message = "Invalid email format")
