@@ -70,7 +70,11 @@ jobs:
         run: |
           echo "$FIREBASE_SA" > app/src/main/resources/firebase-service-account.json
 
-      # 4. Run tests
+      # 4. Ensure mvnw is executable (Windows commits strip the Unix +x bit)
+      - name: Make Maven wrapper executable
+        run: chmod +x app/mvnw
+
+      # 5. Run tests
       - name: Run Maven tests
         working-directory: app
         env:
@@ -92,7 +96,7 @@ jobs:
           SPRING_JPA_SHOW_SQL: 'false'
         run: ./mvnw test --batch-mode --no-transfer-progress
 
-      # 5. Publish Surefire test report (visible in PR / Actions tab)
+      # 6. Publish Surefire test report (visible in PR / Actions tab)
       - name: Publish test report
         if: always()
         uses: actions/upload-artifact@v4
