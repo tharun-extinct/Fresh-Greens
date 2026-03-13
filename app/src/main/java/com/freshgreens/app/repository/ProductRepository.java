@@ -44,4 +44,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                                            @Param("pincode") String pincode,
                                            @Param("status") Product.Status status,
                                            Pageable pageable);
+
+    // ---- Admin queries ----
+
+    long countByStatus(Product.Status status);
 }
