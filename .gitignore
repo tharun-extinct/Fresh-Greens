@@ -52,3 +52,5 @@ error.txt
 gcp.txt
 
 ref
+
+.application-local.properties

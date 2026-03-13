@@ -13,13 +13,18 @@
 name: Deploy to Cloud Run
 
 on:
-  push:
-    branches: [ main ]   # only fires on main — never on PRs or other branches
+  workflow_run:
+    workflows: [ "Spring Boot CI" ]   # wait for CI to finish
+    branches: [ main ]                 # only on main
+    types: [ completed ]               # trigger when it completes
 
 jobs:
   deploy:
     name: Build Image & Deploy to Cloud Run
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}   
+    # ← only runs if CI passed
+
 
     steps:
 
