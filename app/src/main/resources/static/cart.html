@@ -45,6 +45,20 @@
                         <span class="fw-bold">Total</span>
                         <span class="fw-bold" style="font-size: 1.3rem; color: var(--fg-green);" id="total">₹0</span>
                     </div>
+
+                    <!-- Phone verification warning (hidden by default) -->
+                    <div id="phoneWarning" class="d-none mb-3">
+                        <div class="alert alert-warning mb-2 p-2" style="font-size: 0.82rem;">
+                            <i class="bi bi-phone-vibrate me-1"></i>
+                            <strong>Phone verification required!</strong><br>
+                            <a href="/settings.html" class="alert-link">Verify your phone in Settings →</a>
+                        </div>
+                        <button class="btn btn-secondary w-100" disabled>
+                            <i class="bi bi-lock me-1"></i> Phone Verification Required
+                        </button>
+                    </div>
+
+                    <!-- Normal checkout button (hidden if phone not verified) -->
                     <a href="/checkout.html" class="btn btn-fg w-100" id="checkoutBtn">
                         <i class="bi bi-lock me-1"></i> Proceed to Checkout
                     </a>
@@ -68,6 +82,14 @@
                 window.location.href = '/login.html';
                 return;
             }
+
+            // Check phone verification status — gate checkout if not verified
+            FGApi.get('/api/users/me').then(function (userRes) {
+                if (userRes.success && !userRes.data.phoneVerified) {
+                    $('#phoneWarning').removeClass('d-none');
+                    $('#checkoutBtn').addClass('d-none');
+                }
+            });
 
             _loadCart();
 
