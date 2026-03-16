@@ -3,6 +3,7 @@ package com.freshgreens.app.service;
 import com.freshgreens.app.dto.AuthResponse;
 import com.freshgreens.app.model.User;
 import com.freshgreens.app.repository.UserRepository;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -28,6 +29,14 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse verifyAndLogin(String idToken) throws FirebaseAuthException {
+        if (idToken == null || idToken.isBlank()) {
+            throw new IllegalArgumentException("ID token is required");
+        }
+
+        if (FirebaseApp.getApps().isEmpty()) {
+            throw new IllegalStateException("Firebase Admin SDK is not initialized");
+        }
+
         FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
 
         String uid = decodedToken.getUid();

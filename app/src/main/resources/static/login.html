@@ -66,6 +66,15 @@
         $(document).ready(function () {
             FGAuth.init();
 
+            $(document).on('fg:auth:session_created', function () {
+                window.location.href = '/index.html';
+            });
+
+            $(document).on('fg:auth:error', function (event, err) {
+                _setLoading(false);
+                FGToast.show('Sign-in failed: ' + (err && err.message ? err.message : 'Unknown error'), 'danger');
+            });
+
             // If localStorage says logged in, verify with backend before redirecting
             if (FGAuth.isLoggedIn()) {
                 FGAuth.checkSession()
@@ -84,11 +93,15 @@
                 _setLoading(true);
                 FGAuth.signInWithGoogle()
                     .then(function () {
-                        window.location.href = '/index.html';
+                        // Popup success triggers fg:auth:session_created.
+                        // Redirect fallback navigates away and returns later.
                     })
                     .catch(function (err) {
                         _setLoading(false);
-                        FGToast.show('Google sign-in failed: ' + (err.message || 'Unknown error'), 'danger');
+                        const details = (err && (err.code || err.message))
+                            ? (err.code ? err.code + ': ' : '') + (err.message || '')
+                            : 'Unknown error';
+                        FGToast.show('Google sign-in failed: ' + details, 'danger');
                     });
             });
 
@@ -97,11 +110,15 @@
                 _setLoading(true);
                 FGAuth.signInWithGitHub()
                     .then(function () {
-                        window.location.href = '/index.html';
+                        // Popup success triggers fg:auth:session_created.
+                        // Redirect fallback navigates away and returns later.
                     })
                     .catch(function (err) {
                         _setLoading(false);
-                        FGToast.show('GitHub sign-in failed: ' + (err.message || 'Unknown error'), 'danger');
+                        const details = (err && (err.code || err.message))
+                            ? (err.code ? err.code + ': ' : '') + (err.message || '')
+                            : 'Unknown error';
+                        FGToast.show('GitHub sign-in failed: ' + details, 'danger');
                     });
             });
 

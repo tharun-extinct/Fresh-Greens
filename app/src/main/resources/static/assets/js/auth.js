@@ -31,6 +31,9 @@ const FGAuth = (function () {
         firebase.initializeApp(firebaseConfig);
         _initialized = true;
 
+        // Complete OAuth redirect flow if popup fallback was used
+        _handleRedirectResult();
+
         // Listen for auth state changes
         firebase.auth().onAuthStateChanged(function (user) {
             if (user) {
@@ -50,7 +53,7 @@ const FGAuth = (function () {
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('email');
         provider.addScope('profile');
-        return _signInWithPopup(provider);
+        return _signIn(provider);
     }
 
     /**
@@ -60,12 +63,25 @@ const FGAuth = (function () {
         const provider = new firebase.auth.GithubAuthProvider();
         provider.addScope('read:user');
         provider.addScope('user:email');
-        return _signInWithPopup(provider);
+        return _signIn(provider);
     }
 
     /**
      * Common popup sign-in flow
      */
+    function _signIn(provider) {
+        return _signInWithPopup(provider)
+            .catch(function (err) {
+                if (_shouldFallbackToRedirect(err)) {
+                    // Popup flows can fail because of browser COOP/popup restrictions.
+                    // Redirect flow avoids cross-window access issues.
+                    sessionStorage.setItem('fg_auth_redirect_pending', '1');
+                    return firebase.auth().signInWithRedirect(provider);
+                }
+                throw err;
+            });
+    }
+
     function _signInWithPopup(provider) {
         return firebase.auth().signInWithPopup(provider)
             .then(function (result) {
@@ -77,6 +93,42 @@ const FGAuth = (function () {
             });
     }
 
+    function _handleRedirectResult() {
+        const pendingRedirect = sessionStorage.getItem('fg_auth_redirect_pending') === '1';
+
+        firebase.auth().getRedirectResult()
+            .then(function (result) {
+                if (pendingRedirect) {
+                    sessionStorage.removeItem('fg_auth_redirect_pending');
+                }
+                if (!result || !result.user) {
+                    return;
+                }
+                return result.user.getIdToken()
+                    .then(function (idToken) {
+                        return _loginToBackend(idToken);
+                    });
+            })
+            .catch(function (err) {
+                if (pendingRedirect) {
+                    sessionStorage.removeItem('fg_auth_redirect_pending');
+                }
+                $(document).trigger('fg:auth:error', [err]);
+            });
+    }
+
+    function _shouldFallbackToRedirect(err) {
+        if (!err) return false;
+        const code = (err.code || '').toLowerCase();
+        const message = (err.message || '').toLowerCase();
+
+        return code === 'auth/popup-blocked' ||
+               code === 'auth/cancelled-popup-request' ||
+             code === 'auth/popup-closed-by-user' ||
+               message.includes('cross-origin-opener-policy') ||
+               message.includes('window.closed');
+    }
+
     /**
      * Send Firebase ID token to Spring Boot backend
      */
@@ -86,15 +138,26 @@ const FGAuth = (function () {
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ idToken: idToken })
-        }).then(function (response) {
-            if (response.success) {
-                localStorage.setItem('fg_user', JSON.stringify(response.data));
-                $(document).trigger('fg:auth:session_created', [response.data]);
-                return response.data;
-            } else {
-                throw new Error(response.message);
+        }).then(
+            function (response) {
+                if (response.success) {
+                    localStorage.setItem('fg_user', JSON.stringify(response.data));
+                    $(document).trigger('fg:auth:session_created', [response.data]);
+                    return response.data;
+                }
+                throw new Error(response.message || 'Login failed');
+            },
+            function (jqXHR, textStatus, errorThrown) {
+                const apiMessage = jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message
+                    ? jqXHR.responseJSON.message
+                    : null;
+                const message = apiMessage || errorThrown || textStatus || 'Login API request failed';
+                const error = new Error(message);
+                error.code = 'auth/backend-login-failed';
+                error.httpStatus = jqXHR ? jqXHR.status : undefined;
+                throw error;
             }
-        });
+        );
     }
 
     /**

@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -76,6 +77,22 @@ public class AuthController {
             log.error("Firebase auth failed: {}", e.getMessage());
             return ResponseEntity.status(401)
                     .body(ApiResponse.error("Invalid Firebase token: " + e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("Auth request rejected: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            log.error("Auth service unavailable: {}", e.getMessage());
+            return ResponseEntity.status(503)
+                    .body(ApiResponse.error("Authentication service unavailable. Check Firebase configuration."));
+        } catch (DataAccessException e) {
+            log.error("Database error during login", e);
+            return ResponseEntity.status(503)
+                    .body(ApiResponse.error("Database unavailable. Try again shortly."));
+        } catch (Exception e) {
+            log.error("Unexpected error during login", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Login failed due to server error"));
         }
     }
 
