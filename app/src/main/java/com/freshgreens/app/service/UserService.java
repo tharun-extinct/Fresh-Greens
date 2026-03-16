@@ -42,7 +42,11 @@ public class UserService {
             user.setEmail(request.getEmail());
         }
         if (request.getPhone() != null) {
-            user.setPhone(request.getPhone());
+            String newPhone = request.getPhone().trim();
+            if (!newPhone.equals(user.getPhone())) {
+                user.setPhone(newPhone);
+                user.setPhoneVerified(false);
+            }
         }
         if (request.getCity() != null) {
             user.setCity(request.getCity());
@@ -68,6 +72,14 @@ public class UserService {
         User user = getUserById(userId);
         user.setPhone(phone);
         user.setPhoneVerified(true);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User savePhoneForVerification(Long userId, String phone) {
+        User user = getUserById(userId);
+        user.setPhone(phone);
+        user.setPhoneVerified(false);
         return userRepository.save(user);
     }
 }

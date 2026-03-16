@@ -1,5 +1,7 @@
 package com.freshgreens.app.config;
 
+
+// DataInitializer.java
 import com.freshgreens.app.model.Category;
 import com.freshgreens.app.model.Product;
 import com.freshgreens.app.model.User;
@@ -53,8 +55,8 @@ public class DataInitializer implements CommandLineRunner {
             u.setDisplayName("Fresh Greens Demo Store");
             u.setEmail("demo@freshgreens.local");
             u.setProvider("seed");
-            u.setCity("Bangalore");
-            u.setPincode("560001");
+            u.setCity("Chennai");
+            u.setPincode("600001");
             u.setRole(User.Role.SELLER);
             return userRepository.save(u);
         });
@@ -87,8 +89,8 @@ public class DataInitializer implements CommandLineRunner {
             p.setCategory((Category) pd[5]);
             p.setImageUrl((String) pd[6]);
             p.setSeller(seller);
-            p.setCity("Bangalore");
-            p.setPincode("560001");
+            p.setCity("Chennai");
+            p.setPincode("600001");
             p.setStatus(Product.Status.ACTIVE);
             productRepository.save(p);
             count++;

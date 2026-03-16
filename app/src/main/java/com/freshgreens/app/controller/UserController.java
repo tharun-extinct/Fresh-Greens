@@ -3,6 +3,7 @@ package com.freshgreens.app.controller;
 import com.freshgreens.app.dto.ApiResponse;
 import com.freshgreens.app.dto.UserUpdateRequest;
 import com.freshgreens.app.model.User;
+import com.freshgreens.app.service.TwilioVerifyService;
 import com.freshgreens.app.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,12 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final TwilioVerifyService twilioVerifyService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService,
+                          TwilioVerifyService twilioVerifyService) {
         this.userService = userService;
+        this.twilioVerifyService = twilioVerifyService;
     }
 
     /**
@@ -64,17 +68,90 @@ public class UserController {
     }
 
     /**
-     * POST /api/users/verify-phone — Verify phone number
+     * POST /api/users/send-phone-otp — Send OTP to phone via Twilio Verify
+     */
+    @PostMapping("/send-phone-otp")
+    public ResponseEntity<ApiResponse<String>> sendPhoneOtp(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal User user) {
+        String phone;
+        try {
+            phone = normalizePhone(body.get("phone"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+        if (phone == null || phone.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Phone number is required"));
+        }
+
+        try {
+            userService.savePhoneForVerification(user.getId(), phone);
+            twilioVerifyService.startSmsVerification(phone);
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success("OTP sent to your phone", null));
+    }
+
+    /**
+     * POST /api/users/verify-phone — Verify OTP sent to phone via Twilio Verify
      */
     @PostMapping("/verify-phone")
     public ResponseEntity<ApiResponse<String>> verifyPhone(
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal User user) {
-        String phone = body.get("phone");
+        String phone;
+        try {
+            phone = normalizePhone(body.get("phone"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+        String otpCode = body.get("otpCode");
+
         if (phone == null || phone.isBlank()) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Phone number is required"));
         }
-        userService.verifyPhone(user.getId(), phone);
+        if (otpCode == null || otpCode.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("OTP code is required"));
+        }
+
+        try {
+            boolean approved = twilioVerifyService.checkSmsVerification(phone, otpCode.trim());
+            if (!approved) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Invalid or expired OTP"));
+            }
+            userService.verifyPhone(user.getId(), phone);
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+
         return ResponseEntity.ok(ApiResponse.success("Phone verified", null));
+    }
+
+    private String normalizePhone(String rawPhone) {
+        if (rawPhone == null) {
+            return null;
+        }
+
+        String digitsAndPlus = rawPhone.trim().replaceAll("[^\\d+]", "");
+        if (digitsAndPlus.isBlank()) {
+            return null;
+        }
+
+        String normalized;
+        if (digitsAndPlus.startsWith("+")) {
+            normalized = digitsAndPlus;
+        } else if (digitsAndPlus.length() == 10) {
+            normalized = "+91" + digitsAndPlus;
+        } else {
+            normalized = "+" + digitsAndPlus;
+        }
+
+        if (!normalized.matches("^\\+[1-9]\\d{7,14}$")) {
+            throw new IllegalArgumentException("Invalid phone format. Use a valid mobile number.");
+        }
+
+        return normalized;
     }
 }
