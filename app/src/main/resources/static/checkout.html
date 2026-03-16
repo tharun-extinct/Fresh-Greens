@@ -81,13 +81,21 @@
                 return;
             }
 
-            if (FGAuth.isLoggedIn()) {
-                FGApi.get('/api/cart', { silent: true }).then(function (res) {
-                    if (res.success && res.data.totalItems > 0) {
-                        $('#cartBadge').text(res.data.totalItems).removeClass('d-none');
-                    }
-                }).catch(function () { /* ignore */ });
-            }
+            // Check phone verification before allowing any payment
+            FGApi.get('/api/users/me').then(function (userRes) {
+                if (userRes.success && !userRes.data.phoneVerified) {
+                    // Inject a persistent banner at the top of the container
+                    $('.container.page-section').prepend(`
+                        <div class="alert alert-warning mt-3" role="alert">
+                            <i class="bi bi-phone-vibrate me-2"></i>
+                            <strong>Phone verification required!</strong>
+                            Please <a href="/settings.html" class="alert-link fw-bold">verify your phone in Settings</a>
+                            before placing an order.
+                        </div>`);
+                    $('#payBtn').prop('disabled', true)
+                        .html('<i class="bi bi-phone-vibrate me-2"></i> Phone Verification Required');
+                }
+            });
 
             // Pre-fill location
             const loc = FGLocation.get();

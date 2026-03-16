@@ -1,0 +1,97 @@
+# Fresh Greens — CD (Continuous Deployment) Workflow
+#
+# Triggers ONLY on direct pushes / merges to main.
+# Depends on ci.yml passing first (tests must be green).
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   GCP_PROJECT_ID   → your GCP project ID  (e.g. fresh-greens-prod-123456)
+#   GCP_SA_KEY       → full JSON of the github-deployer service account key
+#   GCP_REGION       → GCP region           (e.g. asia-south1)
+
+
+
+name: Deploy to Cloud Run
+
+on:
+  workflow_run:
+    workflows: [ "Spring Boot CI" ]   # wait for CI to finish
+    branches: [ main ]                 # only on main
+    types: [ completed ]               # trigger when it completes
+
+jobs:
+  deploy:
+    name: Build Image & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}   
+    # ← only runs if CI passed
+
+
+    steps:
+
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Authenticate to Google Cloud ─────────────────────────────────────
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # ── 3. Set up Cloud SDK ──────────────────────────────────────────────────
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ── 4. Authorise Docker to push to Artifact Registry ────────────────────
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
+
+      # ── 5. Write Firebase JSON from secret (needed at build time if embedded) ─
+      - name: Write Firebase service-account JSON
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$FIREBASE_SA" > app/src/main/resources/firebase-service-account.json
+
+      # ── 6. Build & push Docker image ─────────────────────────────────────────
+      #       Tag with git SHA for traceability + overwrite 'latest' for Cloud Run
+      - name: Build and push Docker image
+        working-directory: app
+        env:
+          REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/fresh-greens/app
+        run: |
+          docker build -t $REGISTRY:${{ github.sha }} -t $REGISTRY:latest .
+          docker push $REGISTRY:${{ github.sha }}
+          docker push $REGISTRY:latest
+          echo "IMAGE=$REGISTRY:${{ github.sha }}" >> $GITHUB_ENV
+
+      # ── 7. Deploy to Cloud Run ───────────────────────────────────────────────
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy fresh-greens \
+            --image="${{ env.IMAGE }}" \
+            --region="${{ secrets.GCP_REGION }}" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --memory=1Gi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=5 \
+            --add-cloudsql-instances="${{ secrets.GCP_PROJECT_ID }}:${{ secrets.GCP_REGION }}:fresh-greens-db" \
+            --set-secrets="DB_URL=DB_URL:latest" \
+            --set-secrets="DB_USERNAME=DB_USERNAME:latest" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest" \
+            --set-secrets="RAZORPAY_KEY_ID=RAZORPAY_KEY_ID:latest" \
+            --set-secrets="RAZORPAY_KEY_SECRET=RAZORPAY_KEY_SECRET:latest" \
+            --set-env-vars="APP_FIREBASE_CONFIG_PATH=/secrets/firebase-service-account.json,APP_CORS_ORIGINS=https://fresh-greens-315300255753.asia-south1.run.app" \
+            --set-secrets="/secrets/firebase-service-account.json=FIREBASE_SERVICE_ACCOUNT_JSON:latest"
+
+      # ── 8. Print the live URL ────────────────────────────────────────────────
+      - name: Print deployed URL
+        run: |
+          echo "✅ Deployment complete!"
+          gcloud run services describe fresh-greens \
+            --region="${{ secrets.GCP_REGION }}" \
+            --format="value(status.url)"

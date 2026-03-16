@@ -37,6 +37,12 @@ public class WebhookController {
             @RequestBody String payload,
             @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
 
+        // Webhook secret is optional — skip processing if not configured
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            log.debug("Webhook secret not configured — acknowledging without processing");
+            return ResponseEntity.ok(ApiResponse.success("Webhook acknowledged", null));
+        }
+
         if (signature == null || signature.isBlank()) {
             log.warn("Webhook received without signature");
             return ResponseEntity.badRequest().body(ApiResponse.error("Missing signature"));

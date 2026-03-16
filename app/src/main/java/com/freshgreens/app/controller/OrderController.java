@@ -35,6 +35,13 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(
             @Valid @RequestBody OrderRequest request,
             @AuthenticationPrincipal User user) {
+
+        // Phone must be verified before initiating payment
+        if (!user.isPhoneVerified()) {
+            return ResponseEntity.status(403).body(
+                    ApiResponse.error("Please verify your phone number in Settings before placing an order."));
+        }
+
         try {
             OrderResponse order = orderService.createOrder(user, request);
             return ResponseEntity.ok(ApiResponse.success("Order created", order));

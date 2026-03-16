@@ -15,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -23,6 +24,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final FirebaseTokenFilter firebaseTokenFilter;
+
+    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:}")
+    private String extraOrigins;
 
     public SecurityConfig(FirebaseTokenFilter firebaseTokenFilter) {
         this.firebaseTokenFilter = firebaseTokenFilter;
@@ -35,6 +39,12 @@ public class SecurityConfig {
 
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Relax COOP so Firebase popup sign-in can check window.closed
+            .headers(headers -> headers
+                .crossOriginOpenerPolicy(coop -> coop
+                    .policy(org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter
+                            .CrossOriginOpenerPolicy.SAME_ORIGIN_ALLOW_POPUPS))
+            )
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(requestHandler)
@@ -60,6 +70,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Actuator health
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                // Admin-only endpoints
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Everything else requires authentication
                 .anyRequest().authenticated()
             )
@@ -83,7 +95,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+
+        // Always allow localhost for development
+        List<String> origins = new ArrayList<>(List.of("http://localhost:8080"));
+        // Add production / Cloud Run origins from env var (comma-separated)
+        if (extraOrigins != null && !extraOrigins.isBlank()) {
+            for (String origin : extraOrigins.split(",")) {
+                origins.add(origin.trim());
+            }
+        }
+        configuration.setAllowedOrigins(origins);
+
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
