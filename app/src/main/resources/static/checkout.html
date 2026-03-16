@@ -13,6 +13,10 @@
     <nav class="navbar navbar-expand-lg navbar-fg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/index.html"><span class="brand-icon">🥬</span> Fresh Greens</a>
+            <a href="/cart.html" class="nav-link position-relative" style="color: #fff !important;">
+                    <i class="bi bi-cart3" style="font-size: 1.3rem;"></i>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none" id="cartBadge">0</span>
+        </a>
         </div>
     </nav>
 
@@ -75,6 +79,14 @@
             if (!FGAuth.isLoggedIn()) {
                 window.location.href = '/login.html';
                 return;
+            }
+
+            if (FGAuth.isLoggedIn()) {
+                FGApi.get('/api/cart', { silent: true }).then(function (res) {
+                    if (res.success && res.data.totalItems > 0) {
+                        $('#cartBadge').text(res.data.totalItems).removeClass('d-none');
+                    }
+                }).catch(function () { /* ignore */ });
             }
 
             // Pre-fill location

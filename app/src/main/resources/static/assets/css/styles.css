@@ -81,30 +81,73 @@ a:hover { color: var(--fg-green-light); }
 }
 
 /* Search bar */
-.search-bar {
-    position: relative;
-    flex: 1;
-    max-width: 500px;
-}
-.search-bar input {
-    border-radius: 50px;
-    border: none;
-    padding: 0.5rem 1rem 0.5rem 2.5rem;
-    font-size: 0.9rem;
-    background: rgba(255,255,255,0.95);
-    width: 100%;
-    transition: box-shadow 0.2s;
-}
-.search-bar input:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(64, 145, 108, 0.3);
-}
+.search-bar { position: relative; flex:1; max-width: 500px;}
+
 .search-bar .search-icon {
     position: absolute;
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--fg-text-muted);
+}
+
+.search-bar input {
+    border-radius: 50px;
+    border: none;
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.95);
+    width: 100%;
+    transition: box-shadow 0.2s;
+}
+
+
+.fg-clear{
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0,0,0,.45);
+  text-decoration: none;
+  line-height: 1;
+}
+.fg-clear:hover{ color: rgba(0,0,0,.7); }
+
+.fg-suggest{
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.14);
+  z-index: 2000;
+  overflow: hidden;
+}
+
+.fg-suggest .sg-item{
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fg-suggest .sg-item:hover,
+.fg-suggest .sg-item.active{
+  background: #62d471;
+}
+
+.fg-suggest .sg-meta{
+  color:#6c757d;
+  font-size:.85rem;
+  white-space: nowrap;
+}
+
+.fg-suggest .sg-empty{
+  padding: 10px 12px;
+  color:#6c757d;
+  font-size:.9rem;
 }
 
 /* ---- Hero / Banner ---- */

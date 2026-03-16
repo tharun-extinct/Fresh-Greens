@@ -3,7 +3,7 @@ package com.freshgreens.app.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+//import org.hibernate.annotations.UpdateTimestamp;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -64,8 +64,8 @@ public class User implements Serializable {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    // @UpdateTimestamp
+    // private LocalDateTime updatedAt;
 
     public enum Role {
         BUYER, SELLER, ADMIN

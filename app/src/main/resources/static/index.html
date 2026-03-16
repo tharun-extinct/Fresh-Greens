@@ -26,9 +26,27 @@
             </div>
 
             <!-- Search Bar -->
-            <div class="search-bar d-none d-md-block mx-3">
-                <i class="bi bi-search search-icon"></i>
-                <input type="text" id="searchInput" class="form-control" placeholder="Search fresh produce...">
+           <div class="search-bar d-none d-md-block mx-3" id="searchBarDesktop">
+            <i class="bi bi-search search-icon"></i>
+
+            <input
+                type="text"
+                id="searchInput"
+                class="form-control"
+                placeholder="Search fresh products..."
+                autocomplete="off"
+                aria-label="Search products"
+                aria-controls="searchSuggestDesktop"
+                aria-expanded="false"
+            >
+
+            <!-- Clear button -->
+            <button type="button" class="btn btn-link p-0 fg-clear d-none" id="searchClearBtn" aria-label="Clear search">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+
+            <!-- Suggestions dropdown -->
+            <div class="fg-suggest d-none" id="searchSuggestDesktop" role="listbox"></div>
             </div>
 
             <!-- Nav Actions -->
@@ -56,7 +74,7 @@
     <div class="container d-md-none mt-2">
         <div class="search-bar" style="max-width: 100%;">
             <i class="bi bi-search search-icon"></i>
-            <input type="text" id="searchInputMobile" class="form-control" placeholder="Search fresh produce...">
+            <input type="text" id="searchInputMobile" class="form-control" placeholder="Search fresh products...">
         </div>
     </div>
 
@@ -81,9 +99,12 @@
     <!-- Categories -->
     <section class="container page-section">
         <h2 class="section-title">Shop by Category</h2>
+        <a href="#products" class="btn btn-fg mt-2">
+        
         <div class="category-chips" id="categoryList">
             <!-- Populated dynamically -->
         </div>
+        </a>
     </section>
 
     <!-- Products Grid -->
@@ -95,9 +116,8 @@
                     Sort by
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item sort-option" href="#" data-sort="newest">Newest</a></li>
-                    <li><a class="dropdown-item sort-option" href="#" data-sort="price-low">Price: Low to High</a></li>
-                    <li><a class="dropdown-item sort-option" href="#" data-sort="price-high">Price: High to Low</a></li>
+                    <li><a class="dropdown-item sort-option" href="#productGrid" data-sort="price-low">Price: Low to High</a></li>
+                    <li><a class="dropdown-item sort-option" href="#productGrid" data-sort="price-high">Price: High to Low</a></li>
                 </ul>
             </div>
         </div>
@@ -131,7 +151,7 @@
                     <h6 style="color: #fff;">Quick Links</h6>
                     <ul class="list-unstyled" style="font-size: 0.85rem;">
                         <li><a href="/index.html">Home</a></li>
-                        <li><a href="/sell.html">Sell Produce</a></li>
+                        <li><a href="/sell.html">Sell Product</a></li>
                         <li><a href="/orders.html">My Orders</a></li>
                     </ul>
                 </div>
@@ -275,6 +295,38 @@
                 _loadProducts(true);
             });
 
+            // --- Sort products in #productGrid ---
+            const $grid = $('#productGrid');
+
+            function getPriceFromCard(cardEl) {
+            // cardEl is the ".col-6 col-md-4..." wrapper you render in _productCard
+            const txt = $(cardEl).find('.product-price').text(); // e.g. "₹120"
+            // Extract number safely
+            const n = parseFloat(txt.replace(/[^\d.]/g, ''));
+            return Number.isFinite(n) ? n : 0;
+            }
+
+            function sortProductCards(direction) {
+            const cards = $grid.children().get(); // each child is a column wrapper
+
+            cards.sort((a, b) => {
+                const av = getPriceFromCard(a);
+                const bv = getPriceFromCard(b);
+                return direction === 'asc' ? (av - bv) : (bv - av);
+            });
+
+            $grid.append(cards); // reorders DOM
+            }
+
+            // Click on the actual sort option links
+            $(document).on('click', '.sort-option', function (e) {
+            e.preventDefault();
+
+            const sortType = $(this).data('sort'); // "price-low" | "price-high"
+            if (sortType === 'price-low') sortProductCards('asc');
+            if (sortType === 'price-high') sortProductCards('desc');
+            });
+
             // ---- Functions ----
             function _loadProducts(reset) {
                 const loc = FGLocation.get();
@@ -288,6 +340,8 @@
                         if (res.success) {
                             const products = res.data.content || [];
                             const html = products.map(_productCard).join('');
+
+                            //console.log(reset);
 
                             if (reset) {
                                 $('#productGrid').html(html);
@@ -307,14 +361,38 @@
             }
 
             function _loadProductsByCategory(catId) {
-                FGApi.get('/api/products/category/' + catId + '?page=0&size=' + pageSize, {
-                    loading: true, loadingTarget: '#productGrid'
+                const loc=FGLocation.get();
+                // let reset=true;
+                let url='/api/products/category/' + catId + '?page=0&size=' + pageSize;
+                //if (currentQuery) url += '&q=' + encodeURIComponent(currentQuery);
+                if (loc && loc.city) url += '&city=' + encodeURIComponent(loc.city);
+                if (loc && loc.pincode) url += '&pincode=' + encodeURIComponent(loc.pincode);
+                FGApi.get(url, {
+                    loading: true, loadingTarget:'#productGrid'
                 }).then(function (res) {
                     if (res.success) {
                         const products = res.data.content || [];
-                        $('#productGrid').html(products.map(_productCard).join(''));
-                        $('#emptyState').toggleClass('d-none', products.length > 0);
-                        $('#loadMoreSection').addClass('d-none');
+                         //const html = products.map(_productCard).join('');                            
+                        // $('#productGrid').html(html);
+                        // $('#emptyState').toggleClass('d-none', products.length > 0);
+                        // $('#loadMoreSection').addClass('d-none');
+                         const html = products.map(_productCard).join('');
+
+                         //console.log(loc.city);
+                        // if (loc.city!=="Chennai") {
+                        //         $('#productGrid').html(html);
+                        //     } else {
+                        //         $('#productGrid').append(html);
+                        //     }
+                         
+                        if (loc.city==="Chennai") {
+                                $('#emptyState').removeClass('d-none');
+                                $('#loadMoreSection').addClass('d-none');
+                            } else {
+                                $('#productGrid').html(html);
+                                $('#emptyState').addClass('d-none');
+                                $('#loadMoreSection').toggleClass('d-none', products.length > 0);
+                            }
                     }
                 });
             }
@@ -381,6 +459,176 @@
                     }
                 }).catch(function () { /* ignore */ });
             }
+            // ===== Desktop Interactive Search (for #searchInput) =====
+            let sgTimer = null;
+            let sgActive = -1;
+            let sgItems = [];
+
+            const $search = $('#searchInput');
+            const $suggest = $('#searchSuggestDesktop');
+            const $clear = $('#searchClearBtn');
+
+            function scrollToProducts() {
+            const el = document.querySelector('#products');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function openSuggest() {
+            $suggest.removeClass('d-none');
+            $search.attr('aria-expanded', 'true');
+            }
+
+            function closeSuggest() {
+            sgActive = -1;
+            sgItems = [];
+            $suggest.addClass('d-none').empty();
+            $search.attr('aria-expanded', 'false');
+            }
+
+            function setClearVisible(q) {
+            $clear.toggleClass('d-none', !q);
+            }
+
+            // Fetch suggestions from your API (top 6)
+            function fetchSuggestions(q) {
+            const loc = FGLocation.get();
+            let url = '/api/products/search?page=0&size=6&q=' + encodeURIComponent(q);
+
+            // keep consistent with your normal search filters
+            if (loc && loc.city) url += '&city=' + encodeURIComponent(loc.city);
+            if (loc && loc.pincode) url += '&pincode=' + encodeURIComponent(loc.pincode);
+
+            return FGApi.get(url, { silent: true }).then(res => {
+                if (!res.success) return [];
+                return res.data?.content || [];
+            }).catch(() => []);
+            }
+
+            function renderSuggestions(q, products) {
+            if (!products.length) {
+                $suggest.html(`<div class="sg-empty">No matches for "<b>${q}</b>"</div>`);
+                openSuggest();
+                return;
+            }
+
+            const html = products.map((p, idx) => `
+                <div class="sg-item" role="option" data-idx="${idx}" data-id="${p.id}">
+                <div>${p.title}</div>
+                <div class="sg-meta">₹${p.price}${p.unit ? ' / ' + p.unit : ''}</div>
+                </div>
+            `).join('');
+
+            $suggest.html(html);
+            openSuggest();
+            }
+
+            function highlight(idx) {
+            const $rows = $suggest.find('.sg-item');
+            $rows.removeClass('active');
+            if (idx >= 0 && idx < $rows.length) {
+                $rows.eq(idx).addClass('active');
+                sgActive = idx;
+            } else {
+                sgActive = -1;
+            }
+            }
+
+            function runGridSearch(q) {
+            currentQuery = q;
+            currentPage = 0;
+            _loadProducts(true);     // Updates #productGrid
+            scrollToProducts();      // Takes user to results
+            }
+
+            // Live input: update grid + suggestions (debounced)
+            $search.on('input', function () {
+            clearTimeout(sgTimer);
+
+            const q = $search.val().trim();
+            setClearVisible(q);
+
+            if (!q) {
+                closeSuggest();
+                runGridSearch(''); // optional: reload default list when cleared
+                return;
+            }
+
+            sgTimer = setTimeout(async () => {
+                // 1) update productGrid automatically
+                runGridSearch(q);
+
+                // 2) show suggestions
+                sgItems = await fetchSuggestions(q);
+                renderSuggestions(q, sgItems);
+                highlight(-1);
+            }, 250);
+            });
+
+            // Keyboard: arrows + enter + escape
+            $search.on('keydown', function (e) {
+            const isOpen = !$suggest.hasClass('d-none');
+            const rowCount = $suggest.find('.sg-item').length;
+
+            if (e.key === 'Escape') {
+                closeSuggest();
+                return;
+            }
+
+            if (isOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                e.preventDefault();
+                if (e.key === 'ArrowDown') highlight(Math.min(sgActive + 1, rowCount - 1));
+                if (e.key === 'ArrowUp') highlight(Math.max(sgActive - 1, 0));
+                return;
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+
+                // If a suggestion is highlighted, choose it
+                if (isOpen && sgActive >= 0 && sgItems[sgActive]) {
+                const p = sgItems[sgActive];
+                $search.val(p.title);
+                setClearVisible(p.title);
+                closeSuggest();
+
+                // Option: open details OR just filter grid
+                // window.location.href = '/product-detail.html?id=' + encodeURIComponent(p.id);
+                runGridSearch(p.title);
+                return;
+                }
+
+                // Otherwise search using typed query
+                closeSuggest();
+                runGridSearch($search.val().trim());
+            }
+            });
+
+            // Click on suggestion -> put in box + filter grid
+            $(document).on('click', '#searchSuggestDesktop .sg-item', function () {
+            const idx = Number($(this).data('idx'));
+            const p = sgItems[idx];
+            if (!p) return;
+
+            $search.val(p.title);
+            setClearVisible(p.title);
+            closeSuggest();
+            runGridSearch(p.title);
+            });
+
+            // Clear button
+            $clear.on('click', function () {
+            $search.val('');
+            setClearVisible('');
+            closeSuggest();
+            runGridSearch('');
+            });
+
+            // Close dropdown when clicking outside the search bar
+            $(document).on('click', function (e) {
+            if ($(e.target).closest('#searchBarDesktop').length === 0) {
+                closeSuggest();
+            }
+            });
         });
     </script>
 </body>
