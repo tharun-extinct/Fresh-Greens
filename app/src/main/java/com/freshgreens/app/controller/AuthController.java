@@ -7,6 +7,11 @@ import com.freshgreens.app.model.User;
 import com.freshgreens.app.repository.UserRepository;
 import com.freshgreens.app.service.AuthService;
 import com.google.firebase.auth.FirebaseAuthException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -27,6 +32,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Session-based authentication using Firebase ID tokens")
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -47,6 +53,14 @@ public class AuthController {
      * and establishes a Spring Security session so @AuthenticationPrincipal works.
      */
     @PostMapping("/login")
+        @Operation(summary = "Login with Firebase token", description = "Verifies Firebase ID token and creates authenticated server session (JSESSIONID).")
+        @ApiResponses(value = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful",
+                content = @Content(schema = @Schema(implementation = com.freshgreens.app.dto.ApiResponse.class))),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request payload"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid Firebase token"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "Authentication service unavailable")
+        })
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody AuthRequest request,
             HttpServletRequest httpRequest,
@@ -100,6 +114,7 @@ public class AuthController {
      * Invalidates the server-side session and clears SecurityContext.
      */
     @PostMapping("/logout")
+    @Operation(summary = "Logout current session", description = "Invalidates server-side HTTP session.")
     public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request,
                                                      HttpServletResponse response) {
         SecurityContextHolder.clearContext();
@@ -115,6 +130,7 @@ public class AuthController {
      * Check if user has an active authenticated session.
      */
     @GetMapping("/session")
+    @Operation(summary = "Check active session", description = "Returns logged-in user details for active session cookie.")
     public ResponseEntity<ApiResponse<AuthResponse>> checkSession() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
