@@ -2,8 +2,8 @@ package com.freshgreens.app.controller;
 
 import com.freshgreens.app.dto.*;
 import com.freshgreens.app.service.AdminService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,7 +20,7 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+    //private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
     private final AdminService adminService;
 
