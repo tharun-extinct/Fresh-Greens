@@ -64,6 +64,7 @@ public class SecurityConfig {
                 // Public API endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/webhook/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/config/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 // Swagger UI

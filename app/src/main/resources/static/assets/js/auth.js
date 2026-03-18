@@ -12,7 +12,7 @@ const FGAuth = (function () {
     // ---- Firebase Configuration ----
     const firebaseConfig = window.FGFirebaseConfig;
     if (!firebaseConfig) {
-        throw new Error('Firebase configuration missing. Load /assets/js/firebase-config.js before auth.js');
+        throw new Error('Firebase configuration missing. Load /api/config/firebase-config.js before auth.js');
     }
 
     let _currentUser = null;
