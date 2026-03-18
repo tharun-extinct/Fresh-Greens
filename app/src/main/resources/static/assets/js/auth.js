@@ -10,15 +10,10 @@ const FGAuth = (function () {
     'use strict';
 
     // ---- Firebase Configuration ----
-    const firebaseConfig = {
-        apiKey: "AIzaSyDDMRDSgm0gaKa0qIxfUpzuVikvg5j6Eys",
-        authDomain: "fresh-greens-cz007.firebaseapp.com",
-        projectId: "fresh-greens-cz007",
-        storageBucket: "fresh-greens-cz007.firebasestorage.app",
-        messagingSenderId: "315300255753",
-        appId: "1:315300255753:web:af9a19ecd959368a43c0d8",
-        measurementId: "G-YGF6C84JG7"
-    };
+    const firebaseConfig = window.FGFirebaseConfig;
+    if (!firebaseConfig) {
+        throw new Error('Firebase configuration missing. Load /assets/js/firebase-config.js before auth.js');
+    }
 
     let _currentUser = null;
     let _initialized = false;
