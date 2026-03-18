@@ -11,14 +11,15 @@ const FGAuth = (function () {
 
     // ---- Firebase Configuration ----
     const firebaseConfig = {
-        apiKey: "AIzaSyDDMRDSgm0gaKa0qIxfUpzuVikvg5j6Eys",
-        authDomain: "fresh-greens-cz007.firebaseapp.com",
-        projectId: "fresh-greens-cz007",
-        storageBucket: "fresh-greens-cz007.firebasestorage.app",
-        messagingSenderId: "315300255753",
-        appId: "1:315300255753:web:af9a19ecd959368a43c0d8",
-        measurementId: "G-YGF6C84JG7"
-    };
+  apiKey: "AIzaSyAPhvJ70qmuQ2U4dGqIFFrVzK4OElXf09U",
+  authDomain: "fresh-greens-d6ded.firebaseapp.com",
+  projectId: "fresh-greens-d6ded",
+  storageBucket: "fresh-greens-d6ded.firebasestorage.app",
+  messagingSenderId: "441155473345",
+  appId: "1:441155473345:web:af4f1b249d1c03673ca940",
+  measurementId: "G-JSL6WCGXGS"
+};
+
 
     let _currentUser = null;
     let _initialized = false;

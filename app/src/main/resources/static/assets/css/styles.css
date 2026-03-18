@@ -188,6 +188,7 @@ a:hover { color: var(--fg-green-light); }
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     text-align: center;
+    background-color:#d2ffbd;
 }
 .category-chip:hover {
     transform: translateY(-3px);
