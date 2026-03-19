@@ -3,8 +3,6 @@
  *
  * Handles Firebase SDK initialization, Google/GitHub sign-in,
  * token retrieval, and session management with Spring Boot backend.
- *
- * IMPORTANT: Replace the firebaseConfig below with your own Firebase project config.
  */
 const FGAuth = (function () {
     'use strict';
