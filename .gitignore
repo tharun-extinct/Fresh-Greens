@@ -60,3 +60,9 @@ application-local.properties
 
 ### Environment variables — never commit credentials ###
 .env
+
+**/agents
+
+**/skill
+
+
