@@ -2,7 +2,7 @@
 
 This document explains **how data is configured and transferred across layers** in this codebase.
 
-If you’re looking specifically for a full annotation catalog grouped by Maven dependency, use: **docs/annotation-documentation.md**.
+If you’re looking specifically for a full annotation catalog grouped by Maven dependency, use: [docs/annotation-documentation.md](annotation-documentation.md).
 
 ---
 
@@ -220,7 +220,7 @@ That allows multiple app instances to share session state.
 
 ## 5) Related docs
 
-- Annotation catalog (grouped by dependency): **docs/annotation-documentation.md**
+- Annotation catalog (grouped by dependency): [docs/annotation-documentation.md](annotation-documentation.md)
 
 
 
