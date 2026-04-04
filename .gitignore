@@ -62,6 +62,7 @@ application-local.properties
 
 **/agents/**
 **/skill/**
+**/prompts/**
 
 
 *.svg
