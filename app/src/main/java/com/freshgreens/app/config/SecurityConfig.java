@@ -17,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -27,6 +28,15 @@ public class SecurityConfig {
 
     @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:}")
     private String extraOrigins;
+
+    @org.springframework.beans.factory.annotation.Value("${app.cookie.domain:}")
+    private String cookieDomain;
+
+    @org.springframework.beans.factory.annotation.Value("${server.servlet.session.cookie.secure:true}")
+    private boolean cookieSecure;
+
+    @org.springframework.beans.factory.annotation.Value("${server.servlet.session.cookie.same-site:None}")
+    private String cookieSameSite;
 
     public SecurityConfig(FirebaseTokenFilter firebaseTokenFilter) {
         this.firebaseTokenFilter = firebaseTokenFilter;
@@ -46,7 +56,7 @@ public class SecurityConfig {
                             .CrossOriginOpenerPolicy.SAME_ORIGIN_ALLOW_POPUPS))
             )
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRepository(csrfTokenRepository())
                 .csrfTokenRequestHandler(requestHandler)
                 // Disable CSRF for API endpoints that use Bearer token auth
                 .ignoringRequestMatchers("/api/auth/**", "/api/webhook/**")
@@ -98,22 +108,41 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Always allow localhost for development
-        List<String> origins = new ArrayList<>(List.of("http://localhost:8080"));
+        List<String> origins = new ArrayList<>(List.of("http://localhost:8080", "http://localhost:5173"));
         // Add production / Cloud Run origins from env var (comma-separated)
         if (extraOrigins != null && !extraOrigins.isBlank()) {
-            for (String origin : extraOrigins.split(",")) {
-                origins.add(origin.trim());
-            }
+            origins.addAll(List.of(extraOrigins.split(","))
+                .stream()
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .collect(Collectors.toList()));
         }
         configuration.setAllowedOrigins(origins);
 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Set-Cookie"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(builder -> {
+            builder.path("/");
+            builder.secure(cookieSecure);
+            builder.sameSite(cookieSameSite);
+
+            if (cookieDomain != null && !cookieDomain.isBlank()) {
+                builder.domain(cookieDomain);
+            }
+        });
+
+        return repository;
     }
 }

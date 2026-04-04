@@ -137,23 +137,17 @@
         </div>
 
         <!-- Tabs -->
-        <ul class="nav nav-tabs admin-tabs" id="adminTabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="users-tab" data-bs-toggle="tab" href="#usersPane" role="tab">
-                    <i class="bi bi-people me-1"></i>Users
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="products-tab" data-bs-toggle="tab" href="#productsPane" role="tab">
-                    <i class="bi bi-bag me-1"></i>Products
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="orders-tab" data-bs-toggle="tab" href="#ordersPane" role="tab">
-                    <i class="bi bi-box-seam me-1"></i>Orders
-                </a>
-            </li>
-        </ul>
+        <div class="nav nav-tabs admin-tabs" id="adminTabs" role="tablist">
+            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#usersPane" type="button" role="tab" aria-controls="usersPane" aria-selected="true">
+                <i class="bi bi-people me-1"></i>Users
+            </button>
+            <button class="nav-link" id="products-tab" data-bs-toggle="tab" data-bs-target="#productsPane" type="button" role="tab" aria-controls="productsPane" aria-selected="false">
+                <i class="bi bi-bag me-1"></i>Products
+            </button>
+            <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#ordersPane" type="button" role="tab" aria-controls="ordersPane" aria-selected="false">
+                <i class="bi bi-box-seam me-1"></i>Orders
+            </button>
+        </div>
 
         <div class="tab-content" id="adminTabContent">
 
@@ -252,8 +246,8 @@
             });
 
             // Lazy-load tabs on first show
-            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-                const target = $(e.target).attr('href');
+            $('[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const target = $(e.target).attr('data-bs-target');
                 if (target === '#productsPane' && !state.products.loaded) _loadProducts(0);
                 if (target === '#ordersPane'   && !state.orders.loaded)   _loadOrders(0);
             });

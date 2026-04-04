@@ -1,0 +1,126 @@
+name: Deploy Frontend to GCS + Cloud CDN
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'deploy = build + release + promote, rollback = promote existing release'
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - rollback
+      release_id:
+        description: 'Required when mode=rollback (example: a git SHA used in releases/<sha>)'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DEPLOY_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'deploy' }}
+      ROLLBACK_RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_id || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: env.DEPLOY_MODE != 'rollback'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        if: env.DEPLOY_MODE != 'rollback'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        if: env.DEPLOY_MODE != 'rollback'
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+        run: npm run build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Resolve target release
+        id: release
+        run: |
+          set -euo pipefail
+
+          if [ "${DEPLOY_MODE}" = "rollback" ]; then
+            if [ -z "${ROLLBACK_RELEASE_ID}" ]; then
+              echo "release_id is required for rollback mode"
+              exit 1
+            fi
+            TARGET_RELEASE="${ROLLBACK_RELEASE_ID}"
+          else
+            TARGET_RELEASE="${GITHUB_SHA}"
+          fi
+
+          echo "target_release=${TARGET_RELEASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable release bundle
+        if: env.DEPLOY_MODE != 'rollback'
+        run: |
+          set -euo pipefail
+          RELEASE_PATH="gs://${{ secrets.GCS_BUCKET }}/releases/${{ steps.release.outputs.target_release }}"
+
+          gsutil -m rsync -r -d frontend/dist "${RELEASE_PATH}"
+          gsutil -m setmeta -r -h "Cache-Control:public,max-age=31536000,immutable" "${RELEASE_PATH}/assets/**"
+
+          gsutil -m setmeta -h "Cache-Control:no-store,max-age=0,must-revalidate" "${RELEASE_PATH}/index.html"
+          gsutil -m setmeta -h "Cache-Control:no-store,max-age=0,must-revalidate" "${RELEASE_PATH}/manifest.webmanifest" || true
+          gsutil -m setmeta -h "Cache-Control:no-store,max-age=0,must-revalidate" "${RELEASE_PATH}/sw.js" || true
+
+      - name: Promote target release to live root
+        run: |
+          set -euo pipefail
+          RELEASE_PATH="gs://${{ secrets.GCS_BUCKET }}/releases/${{ steps.release.outputs.target_release }}"
+
+          gsutil -m ls "${RELEASE_PATH}" > /dev/null
+          gsutil -m cp -r "${RELEASE_PATH}/*" "gs://${{ secrets.GCS_BUCKET }}"
+
+          gsutil -m setmeta -r -h "Cache-Control:public,max-age=31536000,immutable" "gs://${{ secrets.GCS_BUCKET }}/assets/**"
+          gsutil -m setmeta -h "Cache-Control:no-store,max-age=0,must-revalidate" "gs://${{ secrets.GCS_BUCKET }}/index.html"
+          gsutil -m setmeta -h "Cache-Control:no-store,max-age=0,must-revalidate" "gs://${{ secrets.GCS_BUCKET }}/manifest.webmanifest" || true
+          gsutil -m setmeta -h "Cache-Control:no-store,max-age=0,must-revalidate" "gs://${{ secrets.GCS_BUCKET }}/sw.js" || true
+
+      - name: Invalidate CDN cache
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.CDN_URL_MAP }} --path "/index.html"
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.CDN_URL_MAP }} --path "/manifest.webmanifest"
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.CDN_URL_MAP }} --path "/sw.js"
+
+      - name: Deployment summary
+        run: |
+          echo "Mode: ${DEPLOY_MODE}"
+          echo "Promoted release: ${{ steps.release.outputs.target_release }}"

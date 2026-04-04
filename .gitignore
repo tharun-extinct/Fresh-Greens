@@ -62,3 +62,7 @@ application-local.properties
 
 **/agents/**
 **/skill/**
+
+
+*.svg
+*.png
