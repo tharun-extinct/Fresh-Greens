@@ -107,17 +107,17 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Always allow localhost for development
-        List<String> origins = new ArrayList<>(List.of("http://localhost:8080", "http://localhost:5173"));
+        // Allow any localhost port for local development (handles Vite port auto-bumping)
+        List<String> originPatterns = new ArrayList<>(List.of("http://localhost:*", "http://127.0.0.1:*"));
         // Add production / Cloud Run origins from env var (comma-separated)
         if (extraOrigins != null && !extraOrigins.isBlank()) {
-            origins.addAll(List.of(extraOrigins.split(","))
+            originPatterns.addAll(List.of(extraOrigins.split(","))
                 .stream()
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .collect(Collectors.toList()));
         }
-        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(originPatterns);
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
