@@ -1,7 +1,14 @@
 ﻿# Fresh Greens
 
 Fresh Greens is a B2C e-commerce platform for fresh produce, built with Spring Boot.
-It supports buyer/seller journeys, Firebase-based authentication, cart + checkout, and Razorpay payments.
+It supports customer/admin journeys, Firebase-based authentication, cart + checkout, and Razorpay payments.
+
+## Valid Frontend Applications
+
+Only these frontend applications are valid in this project:
+
+- customer-portal
+- admin-console
 
 ## Quick Visual
 
@@ -21,9 +28,9 @@ flowchart LR
 
 - Firebase token authentication + Spring Security session flow
 - Product listing, search, and category browsing
-- Buyer cart management and order placement
+- Customer cart management and order placement
 - Razorpay order creation + payment verification
-- Seller listing management (create/update/delete)
+- Admin listing management (create/update/delete)
 - Admin APIs for stats, users, products, and orders
 - Redis/in-memory caching for fast reads
 
@@ -44,6 +51,8 @@ flowchart LR
 - app/src/main/java/com/freshgreens/app/service → business logic
 - app/src/main/java/com/freshgreens/app/repository → data access
 - app/src/main/java/com/freshgreens/app/model → entities
+- customer-portal → customer-facing React web app
+- admin-console → admin-facing React web app
 - app/src/main/resources/static → frontend pages/assets
 - .mermaid → architecture/flow diagrams
 
@@ -90,14 +99,3 @@ App URL: `http://localhost:8080`
 - Cart: `/api/cart/*`
 - Orders: `/api/orders/*`
 - Admin: `/api/admin/*`
-
-
-
-
-
-
-where are all the dependcies(AKA JAR file) in the POM.xml is stored in the Project folder?
-
-
-
-How does the `AppApplication.java` runs the combines and runs the modules as a application without any imports ? 
