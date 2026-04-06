@@ -71,6 +71,7 @@ public class SecurityConfig {
                 // Static resources — public
                 .requestMatchers("/", "/*.html", "/assets/**", "/images/**",
                                  "/favicon.ico", "/error/**").permitAll()
+                .requestMatchers("/admin", "/admin/", "/admin.html").permitAll()
                 // Public API endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/webhook/**").permitAll()
@@ -108,7 +109,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Always allow localhost for development
-        List<String> origins = new ArrayList<>(List.of("http://localhost:8080", "http://localhost:5173"));
+        List<String> origins = new ArrayList<>(List.of("http://localhost:8080", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"));
         // Add production / Cloud Run origins from env var (comma-separated)
         if (extraOrigins != null && !extraOrigins.isBlank()) {
             origins.addAll(List.of(extraOrigins.split(","))
