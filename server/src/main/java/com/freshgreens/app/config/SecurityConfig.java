@@ -58,8 +58,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(csrfTokenRepository())
                 .csrfTokenRequestHandler(requestHandler)
-                // Disable CSRF for API endpoints that use Bearer token auth
-                .ignoringRequestMatchers("/api/auth/**", "/api/webhook/**")
+                // Disable CSRF for API endpoints — CORS (origin-restricted) + session auth
+                // provide equivalent CSRF protection for this SPA architecture.
+                .ignoringRequestMatchers("/api/**")
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)

@@ -38,7 +38,7 @@ public class CartService {
 
         if (cart == null || cart.getItems().isEmpty()) {
             return CartResponse.builder()
-                    .cartId(cart != null ? cart.getId() : null)
+                    .id(cart != null ? cart.getId() : null)
                     .items(java.util.Collections.emptyList())
                     .totalAmount(BigDecimal.ZERO)
                     .totalItems(0)
@@ -136,24 +136,25 @@ public class CartService {
 
     private CartResponse toResponse(Cart cart) {
         var items = cart.getItems().stream().map(item -> CartResponse.CartItemResponse.builder()
-                .cartItemId(item.getId())
+                .id(item.getId())
                 .productId(item.getProduct().getId())
                 .productTitle(item.getProduct().getTitle())
-                .imageUrl(item.getProduct().getImageUrl())
-                .unitPrice(item.getUnitPrice())
+                .productImage(item.getProduct().getImageUrl())
+                .price(item.getUnitPrice())
                 .unit(item.getProduct().getUnit())
                 .quantity(item.getQuantity())
-                .totalPrice(item.getTotalPrice())
+                .subtotal(item.getTotalPrice())
+                .stockAvailable(item.getProduct().getStockQuantity())
                 .sellerName(item.getProduct().getSeller().getDisplayName())
                 .build()
         ).collect(Collectors.toList());
 
         BigDecimal total = items.stream()
-                .map(CartResponse.CartItemResponse::getTotalPrice)
+                .map(CartResponse.CartItemResponse::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return CartResponse.builder()
-                .cartId(cart.getId())
+                .id(cart.getId())
                 .items(items)
                 .totalAmount(total)
                 .totalItems(items.size())

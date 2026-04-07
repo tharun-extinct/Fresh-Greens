@@ -10,7 +10,7 @@ import java.util.List;
 @Builder
 public class CartResponse {
 
-    private Long cartId;
+    private Long id;
     private List<CartItemResponse> items;
     private BigDecimal totalAmount;
     private int totalItems;
@@ -19,14 +19,15 @@ public class CartResponse {
     @NoArgsConstructor @AllArgsConstructor
     @Builder
     public static class CartItemResponse {
-        private Long cartItemId;
+        private Long id;
         private Long productId;
         private String productTitle;
-        private String imageUrl;
-        private BigDecimal unitPrice;
+        private String productImage;
+        private BigDecimal price;
         private String unit;
         private Integer quantity;
-        private BigDecimal totalPrice;
+        private BigDecimal subtotal;
+        private Integer stockAvailable;
         private String sellerName;
     }
 }
