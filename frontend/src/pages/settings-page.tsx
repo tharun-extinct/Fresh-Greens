@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import type { AxiosError } from 'axios'
 import { User, Phone, CheckCircle2, AlertCircle } from 'lucide-react'
 import { api } from '../lib/api'
 import { queryClient } from '../lib/query-client'
@@ -23,11 +24,11 @@ export const SettingsPage = () => {
     setDisplayName(userQuery.data.displayName ?? '')
     setCity(userQuery.data.city ?? '')
     setPincode(userQuery.data.pincode ?? '')
-    setPhoneNumber(userQuery.data.phoneNumber ?? userQuery.data.phone ?? '')
+    setPhoneNumber(userQuery.data.phone ?? '')
   }, [userQuery.data])
 
   const saveProfile = useMutation({
-    mutationFn: () => api.updateCurrentUser({ displayName, city, pincode, phoneNumber }),
+    mutationFn: () => api.updateCurrentUser({ displayName, city, pincode, phone: phoneNumber }),
     onSuccess: () => {
       toast.success('Profile updated successfully')
       void queryClient.invalidateQueries({ queryKey: ['me'] })
@@ -38,7 +39,10 @@ export const SettingsPage = () => {
   const sendOtp = useMutation({
     mutationFn: () => api.sendPhoneOtp(phoneNumber),
     onSuccess: () => { toast.success('OTP sent to your phone'); setOtpSent(true) },
-    onError: () => toast.error('Could not send OTP. Check the phone number.'),
+    onError: (err: unknown) => {
+      const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message
+      toast.error(msg || 'Could not send OTP. Check the phone number.')
+    },
   })
 
   const verifyOtp = useMutation({
@@ -49,7 +53,10 @@ export const SettingsPage = () => {
       setOtpSent(false)
       void queryClient.invalidateQueries({ queryKey: ['me'] })
     },
-    onError: () => toast.error('Invalid OTP. Please try again.'),
+    onError: (err: unknown) => {
+      const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message
+      toast.error(msg || 'Invalid OTP. Please try again.')
+    },
   })
 
   if (userQuery.isLoading) return <LoadingState label="Loading settings…" />

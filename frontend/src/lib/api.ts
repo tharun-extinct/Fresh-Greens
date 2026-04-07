@@ -25,9 +25,10 @@ export const api = {
   getCart: async () => (await http.get<ApiResponse<Cart>>('/api/cart')).data.data,
   addToCart: async (productId: number, quantity = 1) =>
     (await http.post<ApiResponse<Cart>>('/api/cart/items', { productId, quantity })).data.data,
-  updateCartItem: async (itemId: number, quantity: number) =>
-    (await http.put<ApiResponse<Cart>>(`/api/cart/items/${itemId}`, { quantity })).data.data,
-  removeCartItem: async (itemId: number) => (await http.delete<ApiResponse<Cart>>(`/api/cart/items/${itemId}`)).data.data,
+  updateCartItem: async (productId: number, quantity: number) =>
+    (await http.put<ApiResponse<Cart>>(`/api/cart/items/${productId}`, null, { params: { quantity } })).data.data,
+  removeCartItem: async (productId: number) =>
+    (await http.delete<ApiResponse<Cart>>(`/api/cart/items/${productId}`)).data.data,
   createOrder: async (payload: { deliveryAddress: string; city: string; pincode: string }) =>
     (await http.post<ApiResponse<{ orderId: number; razorpayOrderId: string; amount: number; currency: string }>>('/api/orders', payload)).data.data,
   verifyOrderPayment: async (payload: {
@@ -39,12 +40,12 @@ export const api = {
   getOrders: async (params?: Record<string, unknown>) =>
     (await http.get<ApiResponse<PageResponse<Order>>>('/api/orders', { params })).data.data,
   getCurrentUser: async () => (await http.get<ApiResponse<User>>('/api/users/me')).data.data,
-  updateCurrentUser: async (payload: Partial<User>) =>
+  updateCurrentUser: async (payload: Partial<User & { phone: string }>) =>
     (await http.put<ApiResponse<User>>('/api/users/me', payload)).data.data,
   sendPhoneOtp: async (phoneNumber: string) =>
-    (await http.post<ApiResponse<unknown>>('/api/users/send-phone-otp', { phoneNumber })).data,
+    (await http.post<ApiResponse<unknown>>('/api/users/send-phone-otp', { phone: phoneNumber })).data,
   verifyPhoneOtp: async (phoneNumber: string, code: string) =>
-    (await http.post<ApiResponse<unknown>>('/api/users/verify-phone-otp', { phoneNumber, code })).data,
+    (await http.post<ApiResponse<unknown>>('/api/users/verify-phone', { phone: phoneNumber, otpCode: code })).data,
 
   getAdminStats: async () => (await http.get<ApiResponse<AdminStats>>('/api/admin/stats')).data.data,
   getAdminUsers: async (params?: Record<string, unknown>) =>

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { MapPin, Phone, Lock } from 'lucide-react'
+import type { AxiosError } from 'axios'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -81,9 +82,14 @@ export const CheckoutPage = () => {
       const razorpay = new window.Razorpay(options)
       razorpay.open()
     },
-    onError: () => toast.error('Checkout failed. Please verify your address and phone verification status.'),
+    onError: (err: unknown) => {
+      const axiosErr = err as AxiosError<{ message?: string }>
+      const serverMsg = axiosErr?.response?.data?.message
+      toast.error(serverMsg || 'Checkout failed. Please try again.')
+    },
   })
 
+  const isPhoneVerified = !user || user.phoneVerified
   const isFormValid = form.deliveryAddress.trim() && form.city.trim() && form.pincode.trim().length === 6
 
   return (
@@ -104,7 +110,7 @@ export const CheckoutPage = () => {
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Full Address *</label>
               <textarea
                 className="min-h-28 w-full rounded-xl border border-border bg-white p-3 text-sm transition focus:border-brand-700 focus:outline-none focus:ring-1 focus:ring-brand-700"
-                placeholder="House / Flat no., Street, Landmark\u2026"
+                placeholder="House / Flat no., Street, Landmark…"
                 value={form.deliveryAddress}
                 onChange={(e) => setForm((prev) => ({ ...prev, deliveryAddress: e.target.value }))}
               />
@@ -147,10 +153,10 @@ export const CheckoutPage = () => {
               className="btn-accent w-full"
               size="lg"
               onClick={() => checkoutMutation.mutate()}
-              disabled={!isFormValid || checkoutMutation.isPending}
+              disabled={!isFormValid || !isPhoneVerified || checkoutMutation.isPending}
             >
               <Lock className="mr-1.5 h-4 w-4" />
-              {checkoutMutation.isPending ? 'Processing…' : 'Pay with Razorpay'}
+              {checkoutMutation.isPending ? 'Processing…' : !isPhoneVerified ? 'Verify Phone to Pay' : 'Pay with Razorpay'}
             </Button>
           </CardContent>
         </Card>

@@ -77,7 +77,7 @@ export const CartPage = () => {
                       type="button"
                       aria-label="Decrease quantity"
                       className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition hover:bg-brand-100 hover:text-brand-700 disabled:opacity-40"
-                      onClick={() => updateMutation.mutate({ itemId: item.id, quantity: Math.max(1, item.quantity - 1) })}
+                      onClick={() => updateMutation.mutate({ itemId: item.productId, quantity: Math.max(1, item.quantity - 1) })}
                       disabled={updateMutation.isPending || item.quantity <= 1}
                     >
                       <Minus className="h-3 w-3" />
@@ -87,7 +87,7 @@ export const CartPage = () => {
                       type="button"
                       aria-label="Increase quantity"
                       className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition hover:bg-brand-100 hover:text-brand-700 disabled:opacity-40"
-                      onClick={() => updateMutation.mutate({ itemId: item.id, quantity: item.quantity + 1 })}
+                      onClick={() => updateMutation.mutate({ itemId: item.productId, quantity: item.quantity + 1 })}
                       disabled={updateMutation.isPending}
                     >
                       <Plus className="h-3 w-3" />
@@ -96,7 +96,7 @@ export const CartPage = () => {
                   <button
                     type="button"
                     className="flex items-center gap-1 text-xs text-rose-500 transition hover:text-rose-700"
-                    onClick={() => removeMutation.mutate(item.id)}
+                    onClick={() => removeMutation.mutate(item.productId)}
                     disabled={removeMutation.isPending}
                   >
                     <Trash2 className="h-3 w-3" />

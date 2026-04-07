@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import type { AxiosError } from 'axios'
 import { MapPin, ShoppingCart, ChevronLeft, Package, Tag } from 'lucide-react'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
@@ -25,7 +26,11 @@ export const ProductDetailPage = () => {
       void queryClient.invalidateQueries({ queryKey: ['cart'] })
       void queryClient.invalidateQueries({ queryKey: ['cart-count'] })
     },
-    onError: () => toast.error('Could not add to cart. Please sign in first.'),
+    onError: (err) => {
+      const axiosErr = err as AxiosError<{ message?: string }>
+      const msg = axiosErr?.response?.data?.message ?? 'Could not add to cart. Please try again.'
+      toast.error(msg)
+    },
   })
 
   if (productQuery.isLoading) return <LoadingState label="Loading product…" />
