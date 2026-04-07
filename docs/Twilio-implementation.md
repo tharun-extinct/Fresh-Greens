@@ -151,69 +151,81 @@ Zscaler intercepts all HTTPS traffic on Cognizant's network and re-signs the TLS
 
 ---
 
-
-### Copying the certificate from the `%%AppData%%`
-
 ```pwsh
-$certs = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -match "Zscaler|Cognizant" }
 
-foreach ($cert in $certs) {
-    $temp = $cert.Subject -replace ' ', '' -replace 'CN=','' -replace "[^a-zA-Z0-9]", "_"
-    $alias = $temp.ToLower().Substring(0, [Math]::Min(20, $temp.Length))
-    $outFile = "$env:TEMP\$alias.cer"
-    Export-Certificate -Cert $cert -FilePath $outFile -Type CERT | Out-Null
-    Write-Host "Exported: $($cert.Subject) -> $outFile"
-}
-```
-
-
-
-```pwsh
-$certs = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -match "Zscaler|Cognizant" }
 Write-Host "Count: $($certs.Count)"
-$certs | ForEach-Object { Write-Host "Subject: $($_.Subject)" }
 
 New-Item -ItemType Directory -Force -Path "C:\Temp" | Out-Null
 
-$i = 0
-$certs | ForEach-Object {
-    $i++
-    $outFile = "C:\Temp\corp_ca_$i.cer"
-    Export-Certificate -Cert $_ -FilePath $outFile -Type CERT
-    Write-Host "Exported to $outFile"
-}
-```
-
-
-
-
-```powershell
 Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" } | Format-List Subject, Thumbprint
 
-```
-
-
-
-```powershell
 $thumb1 = "<Thumbprint>"
 $cert1 = Get-Item "Cert:\LocalMachine\Root\$thumb1"
-New-Item -ItemType Directory -Force -Path "C:\Temp" | Out-Null
-Export-Certificate -Cert $cert1 -FilePath "C:\Temp\zscaler_root.cer" -Type CERT
-Write-Host "Done: $((Get-Item C:\Temp\zscaler_root.cer).Length) bytes"
+
+Export-Certificate -Cert $cert1 -FilePath "C:\Temp\ZSCALER_ROOT_CA.cer" -Type CERT
+Write-Host "Done: $((Get-Item C:\Temp\ZSCALER_ROOT_CA.cer).Length) bytes"
 
 ```
 
-Both certs are exported. Now import them into Java 17's `cacerts` truststore: 
+```pwsh
+
+foreach ($cert in $certs) {
+    # This is the exact math your script uses to generate the alias
+    $generatedAlias = ($cert.Subject -replace "[^a-zA-Z0-9]", "_").ToLower().Substring(0, [Math]::Min(30, ($cert.Subject -replace "[^a-zA-Z0-9]", "_").Length))
+    
+    Write-Host "Windows Subject: $($cert.Subject)"
+    Write-Host "Java Alias:      $generatedAlias"
+}
+```
+
 
 
 ---
 
 
 
+### Copying the certificate from the *`%AppData%`*
 
-## Approach 1: Importing the Certificate into `cacerts` truststore
+```pwsh
+$certs = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -match "Zscaler|zscaler|Cognizant|cognizant" }
 
-#### Requires Admin privilege to write to `Program Files`
+New-Item -ItemType Directory -Force -Path "C:\Temp" | Out-Null
+
+foreach ($cert in $certs) {
+    $temp = $cert.Subject -replace " ", "_" -replace "CN=","" -replace "[^a-zA-Z0-9]", "_" 
+    $alias = $temp.ToUpper().Substring(0, [Math]::Min(20, $temp.Length))
+    $outFile = "C:\Temp\$alias.cer"
+    Export-Certificate -Cert $cert -FilePath $outFile -Type CERT | Out-Null
+    Write-Host "Exported: $($cert.Subject) -> $outFile"
+}
+```
+
+
+#### Export Copying *`cacerts`* from *`jdk-17\lib\security\`* to custom folder *`Users\...\.jvm\`*
+
+```pwsh
+$keytool = "C:\Program Files\Java\jdk-17\bin\keytool.exe"
+$cacerts = "C:\Program Files\Java\jdk-17\lib\security\cacerts"
+$customCacerts = "C:\Users\<user_name>\.jvm\cacerts"
+
+# Create writable directory and copy original cacerts
+New-Item -ItemType Directory -Force -Path "C:\Users\<user_name>\.jvm" | Out-Null
+
+Copy-Item $cacerts $customCacerts -Force
+   
+Write-Host "Copied cacerts. Size: $((Get-Item $customCacerts).Length) bytes"
+```
+
+*Cognizant* and *Zscaler* certs are exported to *`C:\Temp`*
+
+<br>
+<br>
+
+## To import them into Java 17's `cacerts` truststore: 
+
+### Approach 1: Importing the Certificate into `cacerts` truststore
+
+**Requires Admin privilege to write to `Program Files`**
 
 ```powershell
 $keytool = "C:\Program Files\Java\jdk-17\bin\keytool.exe"
@@ -223,12 +235,12 @@ $cacerts = "C:\Program Files\Java\jdk-17\lib\security\cacerts"
 & $keytool -importcert -trustcacerts -alias "cognizant-root-ca" -file "C:\Temp\COGNIZANT_ROOT_CA.cer" -keystore $cacerts -storepass <password> -noprompt
 
 # Import Zscaler Root CA  
-& $keytool -importcert -trustcacerts -alias "zscaler-root-ca" -file "C:\Temp\zscaler_root.cer" -keystore $cacerts -storepass <password> -noprompt
+& $keytool -importcert -trustcacerts -alias "zscaler-root-ca" -file "C:\Temp\ZSCALER_ROOT.cer" -keystore $cacerts -storepass <password> -noprompt
 ```
 
 ---
 
-## Approach 2: Copy `cacerts` into Custom Location and Importing Certificates into it
+### Approach 2: Copy `cacerts` into Custom Location and Importing Certificates into it
 
 ```powershell
 $keytool = "C:\Program Files\Java\jdk-17\bin\keytool.exe"
@@ -241,15 +253,12 @@ New-Item -ItemType Directory -Force -Path "C:\Users\<user_name>\.jvm" | Out-Null
 Copy-Item $cacerts $customCacerts -Force
 
 Write-Host "Copied cacerts. Size: $((Get-Item $customCacerts).Length) bytes"
-```
 
-
-```pwsh
 # Import Cognizant Root CA into `cacerts`
 & $keytool -importcert -trustcacerts -alias "cognizant-root-ca" -file "C:\Temp\COGNIZANT_ROOT_CA.cer" -keystore $customCacerts -storepass <password> -noprompt
 
-# Import Zscaler Root CA
-& $keytool -importcert -trustcacerts -alias "zscaler-root-ca" -file "C:\Temp\zscaler_root.cer" -keystore $customCacerts -storepass <password> -noprompt
+# Import Zscaler Root CA into `cacerts`
+& $keytool -importcert -trustcacerts -alias "zscaler-root-ca" -file "C:\Temp\ZSCALER_ROOT_CA.cer" -keystore $customCacerts -storepass <password> -noprompt
 
 #Listing 
 & $keytool -list -keystore $customCacerts -storepass <password> -alias "cognizant-root-ca" 2>&1
