@@ -9,7 +9,7 @@ target/
 
 !**/src/main/**/target/
 !**/src/test/**/target/
-**/static/**
+static/
 
 ### STS ###
 .apt_generated
