@@ -1,6 +1,6 @@
-# 🧪 Test Implementation Guide
+# 🧪 Test Implementation
 
-Welcome to the **Fresh Greens Testing Documentation**. This document outlines the unit testing strategy, the tools configured, and the specific methods used to ensure the reliability of the backend `server` application.
+**Fresh Greens Testing Documentation** ── This document outlines the unit testing strategy, the tools configured, and the specific methods used to ensure the reliability of the backend `server` application. 
 
 ---
 
@@ -12,11 +12,17 @@ Welcome to the **Fresh Greens Testing Documentation**. This document outlines th
 To establish a robust and isolated testing environment, the following files were implemented or updated:
 
 ### Created Test Classes
-- **`server/src/test/java/com/freshgreens/app/service/ProductServiceTest.java`**
+- **`server/src/test/.../service/ProductServiceTest.java`**
   Unit tests for the `ProductService`, verifying that product details can be fetched and mapped correctly to their DTOs (`ProductResponse`) alongside their respective seller details.
   
-- **`server/src/test/java/com/freshgreens/app/service/CartServiceTest.java`**
+- **`server/src/test/.../service/CartServiceTest.java`**
   Unit tests for the `CartService`, validating operations like fetching an empty cart and ensuring amounts and totals are calculated accurately.
+
+- **`server/src/test/.../service/UserServiceTest.java`**
+  Unit tests for `UserService` that valid user retrievals, verifying email addresses, and performing user detail updates.
+
+- **`server/src/test/.../service/OrderServiceTest.java`**
+  Unit tests for the `OrderService` evaluating retrieving order details effectively mapping `Order` domains to `OrderResponse` models, and verifying empty order paginations without triggering Razorpay logic directly.
 
 ### Configuration & Environment
 - **`server/src/test/resources/application-test.properties`**
@@ -25,7 +31,7 @@ To establish a robust and isolated testing environment, the following files were
 - **`server/pom.xml`**
   Added the `com.h2database:h2` dependency scoped specifically for the test phase. Fixed structural issues to allow Maven test goals to execute properly.
   
-- **`server/src/main/java/com/freshgreens/app/config/DataInitializer.java`**
+- **`server/src/main/.../config/DataInitializer.java`**
   Annotated with `@Profile("!test")` to prevent the production database seeders from running and crashing during the lightweight unit tests.
 
 ---
