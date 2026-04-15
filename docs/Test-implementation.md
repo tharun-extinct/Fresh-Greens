@@ -1,4 +1,4 @@
-# 🧪 Test Implementation
+# Test Implementation
 
 **Fresh Greens Testing Documentation** ── This document outlines the unit testing strategy, the tools configured, and the specific methods used to ensure the reliability of the backend `server` application. 
 
@@ -104,3 +104,11 @@ assertEquals("Expected String", result.getTitle());
 ```
 - **`assertNotNull(object)`**: Ensures that the service actually returned an object, preventing accidental `NullPointerException` bugs in production.
 - **`assertEquals(expected, actual)`**: Compares two values. If the `result.getTitle()` does not exactly match `"Expected String"`, the test runner halts and marks the test as a **FAILURE**.
+
+<br>
+<br>
+
+
+```
+& "c:\Project\fresh-greens\server\mvnw.cmd" clean test -f "c:\Project\fresh-greens\server\pom.xml"
+```
