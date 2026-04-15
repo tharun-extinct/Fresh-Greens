@@ -4,11 +4,12 @@ HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 
-### Machine-specific JVM args (SSL truststore, proxy) — never commit ###
+### Machine-specific JVM args (SSL truststore, proxy) ###
 **/jvm.config
 
 !**/src/main/**/target/
 !**/src/test/**/target/
+static/
 
 ### STS ###
 .apt_generated
@@ -39,14 +40,14 @@ build/
 .vscode/
 .github/copilot-instructions.md
 
-### Mermaid diagrams — local only, never commit ###
+
 .mermaid/
 
 ### Secrets — never commit credentials ###
 firebase-service-account.json
 **/firebase-service-account.json
 
-### Local environment variables — never commit ###
+### Local environment variables ###
 .env
 app/.env
 *.env
@@ -56,6 +57,7 @@ error.txt
 gcp.txt
 
 ref
+
 
 application-local.properties
 

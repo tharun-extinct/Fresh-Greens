@@ -125,7 +125,7 @@ export const SettingsPage = () => {
               <Input
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+91 9876543210"
+                placeholder="+91 xxxxxxxxxx"
                 className="flex-1"
               />
               <Button

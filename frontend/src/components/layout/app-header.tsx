@@ -151,7 +151,6 @@ export const AppHeader = () => {
                   className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 py-1 pl-1.5 pr-3 text-white transition hover:bg-white/20"
                   onClick={() => setDropdownOpen((v) => !v)}
                   aria-label="User menu"
-                  aria-expanded={dropdownOpen ? 'true' : 'false'}
                 >
                   {user?.photoUrl ? (
                     <img
