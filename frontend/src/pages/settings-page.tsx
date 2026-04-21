@@ -16,8 +16,6 @@ export const SettingsPage = () => {
   const [city, setCity] = useState('')
   const [pincode, setPincode] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
 
   useEffect(() => {
     if (!userQuery.data) return
@@ -36,26 +34,15 @@ export const SettingsPage = () => {
     onError: () => toast.error('Failed to update profile'),
   })
 
-  const sendOtp = useMutation({
-    mutationFn: () => api.sendPhoneOtp(phoneNumber),
-    onSuccess: () => { toast.success('OTP sent to your phone'); setOtpSent(true) },
-    onError: (err: unknown) => {
-      const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message
-      toast.error(msg || 'Could not send OTP. Check the phone number.')
-    },
-  })
-
-  const verifyOtp = useMutation({
-    mutationFn: () => api.verifyPhoneOtp(phoneNumber, otp),
+  const verifyPhone = useMutation({
+    mutationFn: () => api.verifyPhone(phoneNumber),
     onSuccess: () => {
       toast.success('Phone verified successfully! ✅')
-      setOtp('')
-      setOtpSent(false)
       void queryClient.invalidateQueries({ queryKey: ['me'] })
     },
     onError: (err: unknown) => {
       const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message
-      toast.error(msg || 'Invalid OTP. Please try again.')
+      toast.error(msg || 'Could not verify phone. Please try again.')
     },
   })
 
@@ -131,31 +118,13 @@ export const SettingsPage = () => {
               <Button
                 className="btn-fg-outline shrink-0"
                 variant="outline"
-                onClick={() => sendOtp.mutate()}
-                disabled={!phoneNumber.trim() || sendOtp.isPending}
+                onClick={() => verifyPhone.mutate()}
+                disabled={!phoneNumber.trim() || verifyPhone.isPending}
               >
-                {sendOtp.isPending ? 'Sending…' : otpSent ? 'Resend OTP' : 'Send OTP'}
+                {verifyPhone.isPending ? 'Verifying…' : 'Verify Phone'}
               </Button>
             </div>
           </div>
-
-          {otpSent && (
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Enter OTP</label>
-              <div className="flex gap-2">
-                <Input
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
-                  placeholder="6-digit OTP"
-                  maxLength={6}
-                  className="flex-1"
-                />
-                <Button className="btn-fg shrink-0" onClick={() => verifyOtp.mutate()} disabled={otp.length < 4 || verifyOtp.isPending}>
-                  {verifyOtp.isPending ? 'Verifying…' : 'Verify'}
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

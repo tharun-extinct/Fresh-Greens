@@ -42,10 +42,8 @@ export const api = {
   getCurrentUser: async () => (await http.get<ApiResponse<User>>('/api/users/me')).data.data,
   updateCurrentUser: async (payload: Partial<User & { phone: string }>) =>
     (await http.put<ApiResponse<User>>('/api/users/me', payload)).data.data,
-  sendPhoneOtp: async (phoneNumber: string) =>
-    (await http.post<ApiResponse<unknown>>('/api/users/send-phone-otp', { phone: phoneNumber })).data,
-  verifyPhoneOtp: async (phoneNumber: string, code: string) =>
-    (await http.post<ApiResponse<unknown>>('/api/users/verify-phone', { phone: phoneNumber, otpCode: code })).data,
+  verifyPhone: async (phoneNumber: string) =>
+    (await http.post<ApiResponse<unknown>>('/api/users/verify-phone', { phone: phoneNumber })).data,
 
   getAdminStats: async () => (await http.get<ApiResponse<AdminStats>>('/api/admin/stats')).data.data,
   getAdminUsers: async (params?: Record<string, unknown>) =>

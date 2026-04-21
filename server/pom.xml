@@ -130,12 +130,7 @@
 			<scope>test</scope>
 		</dependency>
 
-        <!-- Twilio Java SDK -->
-        <dependency>
-                <groupId>com.twilio.sdk</groupId>
-                <artifactId>twilio</artifactId>
-                <version>10.6.2</version>
-        </dependency>
+
 	</dependencies>
 
 	<build>
@@ -148,3 +143,4 @@
 	</build>
 
 </project>
+
