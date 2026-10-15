@@ -1,3 +1,4 @@
+// Cart - MODEL
 package com.freshgreens.app.model;
 
 import java.time.LocalDateTime;
