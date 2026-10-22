@@ -1,3 +1,4 @@
+#comment
 package com.freshgreens.app.model;
 
 import jakarta.persistence.*;
